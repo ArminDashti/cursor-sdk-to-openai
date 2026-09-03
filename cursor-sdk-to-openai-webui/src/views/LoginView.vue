@@ -28,22 +28,22 @@ async function submit() {
 <template>
   <div class="mx-auto max-w-md rounded-lg border bg-card p-6 shadow-sm">
     <h1 class="text-xl font-semibold">Admin sign in</h1>
-    <p class="mt-1 text-sm text-muted-foreground">View API logs and endpoint reference.</p>
+    <p class="mt-1 text-sm text-muted-foreground">View API requests and endpoint reference.</p>
     <form class="mt-6 space-y-4" @submit.prevent="submit">
       <label class="block text-sm">
         Username
-        <input v-model="username" class="mt-1 w-full rounded-md border px-3 py-2" autocomplete="username" />
+        <input v-model="username" class="mt-1 w-full rounded-md border bg-background px-3 py-2" autocomplete="username" />
       </label>
       <label class="block text-sm">
         Password
         <input
           v-model="password"
           type="password"
-          class="mt-1 w-full rounded-md border px-3 py-2"
+          class="mt-1 w-full rounded-md border bg-background px-3 py-2"
           autocomplete="current-password"
         />
       </label>
-      <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
+      <p v-if="error" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
       <button
         type="submit"
         class="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"

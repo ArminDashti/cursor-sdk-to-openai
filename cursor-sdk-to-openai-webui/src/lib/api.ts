@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_BASE ?? "http://127.0.0.1:8140";
+const API_BASE = import.meta.env.VITE_API_BASE ?? "http://127.0.0.1:9090";
 const TOKEN_KEY = "cursor_sdk_openai_admin_token";
 
 export function getToken(): string | null {
@@ -39,6 +39,19 @@ export type LogRow = {
   error_message: string | null;
 };
 
+export type LogDetail = LogRow & {
+  client_ip: string | null;
+  request_body: string | null;
+  response_body: string | null;
+  cursor_agent_id: string | null;
+  tokens_prompt: number | null;
+  tokens_completion: number | null;
+  file_id: string | null;
+  file_name: string | null;
+  file_size: number | null;
+  file_purpose: string | null;
+};
+
 export type LogsResponse = {
   page: number;
   page_size: number;
@@ -66,7 +79,7 @@ export async function fetchLogs(page = 1, pageSize = 20): Promise<LogsResponse> 
   return apiFetch(`/admin/logs?page=${page}&page_size=${pageSize}`);
 }
 
-export async function fetchLog(id: string): Promise<LogRow & Record<string, unknown>> {
+export async function fetchLog(id: string): Promise<LogDetail> {
   return apiFetch(`/admin/logs/${id}`);
 }
 

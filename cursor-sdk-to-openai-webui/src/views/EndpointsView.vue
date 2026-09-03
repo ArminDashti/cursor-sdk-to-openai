@@ -21,7 +21,7 @@ onMounted(async () => {
     <p class="mt-1 text-sm text-muted-foreground">
       Reference for clients using this proxy. This page does not send chat requests.
     </p>
-    <p v-if="error" class="mt-4 text-sm text-red-600">{{ error }}</p>
+    <p v-if="error" class="mt-4 text-sm text-red-600 dark:text-red-400">{{ error }}</p>
     <div v-else class="mt-6 space-y-4">
       <article v-for="(ep, i) in endpoints" :key="i" class="rounded-lg border p-4">
         <div class="flex flex-wrap items-center gap-2">
