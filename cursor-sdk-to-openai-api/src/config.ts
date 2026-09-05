@@ -27,6 +27,10 @@ export const config = {
   logResponseMaxBytes: envInt("LOG_RESPONSE_MAX_BYTES", 65536),
   logRetentionDays: envInt("LOG_RETENTION_DAYS", 30),
   webuiOrigin: process.env.WEBUI_ORIGIN ?? "http://127.0.0.1:5190",
+  webuiOrigins: (process.env.WEBUI_ORIGIN ?? "http://127.0.0.1:5190")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean),
 };
 
 export function projectRoot(): string {

@@ -23,7 +23,7 @@ async function main(): Promise<void> {
   });
 
   await app.register(cors, {
-    origin: [config.webuiOrigin],
+    origin: config.webuiOrigins,
     credentials: true,
   });
 
