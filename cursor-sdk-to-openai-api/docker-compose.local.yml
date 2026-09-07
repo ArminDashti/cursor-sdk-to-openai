@@ -13,8 +13,13 @@ services:
       PORT: "8140"
       DATABASE_PATH: /app/data/cursor-sdk-to-openai.db
       UPLOAD_DIR: /app/data/uploads
-      WEBUI_ORIGIN: "http://pc-armin,http://127.0.0.1:5173,http://localhost:5173"
+      WEBUI_ORIGIN: "http://pc-armin,http://127.0.0.1:5173,http://localhost:5173,http://pc-armin:3080,http://127.0.0.1:3080"
       CHOKIDAR_USEPOLLING: "true"
+      # Empty CURSOR_CWD in .env would break local Agent.create; pin a workspace root.
+      CURSOR_CWD: ${CURSOR_CWD:-/app}
+      # Ensure key from env_file reaches the app even if only one name is set
+      RAMIN_2_CURSOR_API: ${RAMIN_2_CURSOR_API:-}
+      CURSOR_API_KEY: ${CURSOR_API_KEY:-${RAMIN_2_CURSOR_API:-}}
     command:
       - sh
       - -c

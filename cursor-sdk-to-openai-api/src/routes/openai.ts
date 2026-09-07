@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { config } from "../config.js";
 import { openAiAuthOk } from "../auth.js";
 import {
+  createLocalCursorAgent,
   listCursorModels,
   messagesToPrompt,
   openAiChatResponse,
@@ -16,6 +17,21 @@ type ChatBody = {
   messages?: Array<{ role: string; content?: unknown }>;
   stream?: boolean;
 };
+
+function writeSseError(raw: NodeJS.WritableStream & { writableEnded?: boolean }, message: string): void {
+  if (raw.writableEnded) return;
+  raw.write(
+    `data: ${JSON.stringify({ error: { message, type: "server_error" } })}\n\n`,
+  );
+  raw.write("data: [DONE]\n\n");
+  raw.end();
+}
+
+function httpStatusForCursorError(message: string): number {
+  if (/plan_required/i.test(message)) return 402;
+  if (/unauthorized|invalid api key|authentication/i.test(message)) return 401;
+  return 500;
+}
 
 export async function registerChatRoutes(app: FastifyInstance): Promise<void> {
   app.post("/v1/chat/completions", async (request: FastifyRequest, reply: FastifyReply) => {
@@ -42,29 +58,48 @@ export async function registerChatRoutes(app: FastifyInstance): Promise<void> {
 
     reply.header("X-Request-Id", logId);
 
-    try {
-      const prompt = messagesToPrompt(messages as Parameters<typeof messagesToPrompt>[0]);
-      const completionId = `chatcmpl_${randomUUID().replace(/-/g, "").slice(0, 24)}`;
+    const prompt = messagesToPrompt(messages as Parameters<typeof messagesToPrompt>[0]);
+    const completionId = `chatcmpl_${randomUUID().replace(/-/g, "").slice(0, 24)}`;
 
-      if (stream) {
-        reply.raw.writeHead(200, {
-          "Content-Type": "text/event-stream",
-          "Cache-Control": "no-cache",
-          Connection: "keep-alive",
+    if (stream) {
+      let agent;
+      try {
+        agent = await createLocalCursorAgent(model);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        const statusCode = httpStatusForCursorError(message);
+        updateRequestLog(logId, {
+          statusCode,
+          durationMs: Date.now() - started,
+          errorMessage: message,
         });
+        return reply.code(statusCode).send({ error: { message, type: "server_error" } });
+      }
 
+      reply.hijack();
+      reply.raw.writeHead(200, {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+        "X-Request-Id": logId,
+      });
+
+      try {
         let fullText = "";
         const result = await runCursorPrompt({
           prompt,
           model,
           stream: true,
+          agent,
           onDelta: (delta) => {
             fullText += delta;
             reply.raw.write(`data: ${JSON.stringify(sseChatChunk({ id: completionId, model, delta }))}\n\n`);
           },
         });
 
-        reply.raw.write(`data: ${JSON.stringify(sseChatChunk({ id: completionId, model, delta: "", finish: true }))}\n\n`);
+        reply.raw.write(
+          `data: ${JSON.stringify(sseChatChunk({ id: completionId, model, delta: "", finish: true }))}\n\n`,
+        );
         reply.raw.write("data: [DONE]\n\n");
         reply.raw.end();
 
@@ -74,9 +109,21 @@ export async function registerChatRoutes(app: FastifyInstance): Promise<void> {
           responseBody: { content: fullText, stream: true },
           cursorAgentId: result.agentId,
         });
-        return reply;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        updateRequestLog(logId, {
+          statusCode: 500,
+          durationMs: Date.now() - started,
+          errorMessage: message,
+        });
+        writeSseError(reply.raw, message);
+      } finally {
+        await agent[Symbol.asyncDispose]();
       }
+      return;
+    }
 
+    try {
       const result = await runCursorPrompt({ prompt, model });
       const payload = openAiChatResponse({
         id: completionId,
@@ -94,12 +141,13 @@ export async function registerChatRoutes(app: FastifyInstance): Promise<void> {
       return reply.send(payload);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unknown error";
+      const statusCode = httpStatusForCursorError(message);
       updateRequestLog(logId, {
-        statusCode: 500,
+        statusCode,
         durationMs: Date.now() - started,
         errorMessage: message,
       });
-      return reply.code(500).send({ error: { message, type: "server_error" } });
+      return reply.code(statusCode).send({ error: { message, type: "server_error" } });
     }
   });
 

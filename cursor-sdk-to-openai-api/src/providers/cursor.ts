@@ -42,23 +42,30 @@ export type CursorRunResult = {
   agentId?: string;
 };
 
+type CursorAgent = Awaited<ReturnType<typeof createLocalCursorAgent>>;
+
+export async function createLocalCursorAgent(model: string) {
+  if (!config.cursorApiKey) {
+    throw new Error("RAMIN_2_CURSOR_API (or CURSOR_API_KEY) is not configured");
+  }
+
+  const { Agent } = await import("@cursor/sdk");
+  return Agent.create({
+    apiKey: config.cursorApiKey,
+    model: { id: model },
+    local: { cwd: config.cursorCwd },
+  });
+}
+
 export async function runCursorPrompt(options: {
   prompt: string;
   model: string;
   stream?: boolean;
   onDelta?: (text: string) => void;
+  agent?: CursorAgent;
 }): Promise<CursorRunResult> {
-  if (!config.cursorApiKey) {
-    throw new Error("CURSOR_API_KEY is not configured");
-  }
-
-  const { Agent } = await import("@cursor/sdk");
-
-  const agent = await Agent.create({
-    apiKey: config.cursorApiKey,
-    model: { id: options.model },
-    local: { cwd: config.cursorCwd },
-  });
+  const agent = options.agent ?? (await createLocalCursorAgent(options.model));
+  const ownsAgent = !options.agent;
 
   try {
     const run = await agent.send(options.prompt);
@@ -92,17 +99,24 @@ export async function runCursorPrompt(options: {
       agentId: agent.agentId,
     };
   } finally {
-    await agent[Symbol.asyncDispose]();
+    if (ownsAgent) {
+      await agent[Symbol.asyncDispose]();
+    }
   }
+}
+
+const FALLBACK_MODELS = ["composer-2", "composer-2.5", "auto-smart"] as const;
+
+function fallbackModelList(): Array<{ id: string; owned_by: string }> {
+  const ids = [...FALLBACK_MODELS, config.defaultModel];
+  return ids
+    .filter((id, i, arr) => arr.indexOf(id) === i)
+    .map((id) => ({ id, owned_by: "cursor" }));
 }
 
 export async function listCursorModels(): Promise<Array<{ id: string; owned_by: string }>> {
   if (!config.cursorApiKey) {
-    return [
-      { id: "composer-2", owned_by: "cursor" },
-      { id: "composer-2.5", owned_by: "cursor" },
-      { id: config.defaultModel, owned_by: "cursor" },
-    ].filter((m, i, arr) => arr.findIndex((x) => x.id === m.id) === i);
+    return fallbackModelList();
   }
 
   try {
@@ -112,10 +126,10 @@ export async function listCursorModels(): Promise<Array<{ id: string; owned_by: 
       return models.map((m) => ({ id: m.id, owned_by: "cursor" }));
     }
   } catch {
-    /* fall through */
+    /* Cursor account may lack listing (e.g. free / plan_required) — keep UI selectable. */
   }
 
-  return [{ id: config.defaultModel, owned_by: "cursor" }];
+  return fallbackModelList();
 }
 
 export function openAiChatResponse(options: {

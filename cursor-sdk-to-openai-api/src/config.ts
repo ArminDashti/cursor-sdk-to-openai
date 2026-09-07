@@ -15,8 +15,11 @@ export const config = {
   port: envInt("PORT", 8140),
   host: process.env.HOST ?? "127.0.0.1",
   databasePath: process.env.DATABASE_PATH ?? "./data/cursor-sdk-to-openai.db",
-  cursorApiKey: process.env.CURSOR_API_KEY ?? "",
-  cursorCwd: process.env.CURSOR_CWD ?? process.cwd(),
+  // Prefer RAMIN_2_CURSOR_API; accept CURSOR_API_KEY for older compose/.env
+  // Prefer RAMIN_2_CURSOR_API; accept CURSOR_API_KEY for older compose/.env
+  cursorApiKey: process.env.RAMIN_2_CURSOR_API || process.env.CURSOR_API_KEY || "",
+  // Empty CURSOR_CWD= must not win over cwd (?? only treats null/undefined)
+  cursorCwd: process.env.CURSOR_CWD?.trim() || process.cwd(),
   defaultModel: process.env.DEFAULT_MODEL ?? "composer-2.5",
   authKey: process.env.AUTH_KEY ?? "",
   adminUsername: process.env.ADMIN_USERNAME ?? "armin",
