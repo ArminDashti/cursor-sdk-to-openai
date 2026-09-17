@@ -46,7 +46,9 @@ type CursorAgent = Awaited<ReturnType<typeof createLocalCursorAgent>>;
 
 export async function createLocalCursorAgent(model: string) {
   if (!config.cursorApiKey) {
-    throw new Error("RAMIN_2_CURSOR_API (or CURSOR_API_KEY) is not configured");
+    throw new Error(
+      "CURSOR_API_KEY_RAMIN_DASHTI_WORK (or RAMIN_2_CURSOR_API / CURSOR_API_KEY) is not configured",
+    );
   }
 
   const { Agent } = await import("@cursor/sdk");

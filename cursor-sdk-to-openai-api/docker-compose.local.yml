@@ -18,8 +18,9 @@ services:
       # Empty CURSOR_CWD in .env would break local Agent.create; pin a workspace root.
       CURSOR_CWD: ${CURSOR_CWD:-/app}
       # Ensure key from env_file reaches the app even if only one name is set
+      CURSOR_API_KEY_RAMIN_DASHTI_WORK: ${CURSOR_API_KEY_RAMIN_DASHTI_WORK:-}
       RAMIN_2_CURSOR_API: ${RAMIN_2_CURSOR_API:-}
-      CURSOR_API_KEY: ${CURSOR_API_KEY:-${RAMIN_2_CURSOR_API:-}}
+      CURSOR_API_KEY: ${CURSOR_API_KEY:-${CURSOR_API_KEY_RAMIN_DASHTI_WORK:-${RAMIN_2_CURSOR_API:-}}}
     command:
       - sh
       - -c

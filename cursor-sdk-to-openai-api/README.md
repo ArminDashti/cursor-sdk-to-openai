@@ -6,7 +6,7 @@ Node.js OpenAI-compatible proxy using `@cursor/sdk`. Logs every request to SQLit
 
 ```bash
 copy .env.example .env
-# set RAMIN_2_CURSOR_API
+# set CURSOR_API_KEY_RAMIN_DASHTI_WORK
 npm install
 npm run dev
 ```
@@ -19,7 +19,8 @@ Listens on `http://127.0.0.1:8140`.
 |----------|---------|-------------|
 | `DATABASE_PATH` | `./data/cursor-sdk-to-openai.db` | SQLite file |
 | `LOG_RETENTION_DAYS` | `30` | Delete logs and uploads older than this |
-| `RAMIN_2_CURSOR_API` | — | Required for chat/responses |
+| `CURSOR_API_KEY_RAMIN_DASHTI_WORK` | — | Required for chat/responses (preferred) |
+| `RAMIN_2_CURSOR_API` / `CURSOR_API_KEY` | — | Fallback aliases |
 | `AUTH_KEY` | — | Optional bearer for OpenAI routes |
 
 ## Admin API

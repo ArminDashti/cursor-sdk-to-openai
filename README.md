@@ -25,7 +25,7 @@ See [ENDPOINTS.md](./ENDPOINTS.md) for curl examples.
 # API
 cd cursor-sdk-to-openai-api
 copy .env.example .env
-# set RAMIN_2_CURSOR_API in .env
+# set CURSOR_API_KEY_RAMIN_DASHTI_WORK in .env
 npm install
 npm run dev
 
